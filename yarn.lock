@@ -1488,6 +1488,7 @@ __metadata:
     express: "npm:^4.21.1"
     helmet: "npm:^8.0.0"
     jsonwebtoken: "npm:^9.0.2"
+    mongodb: "npm:^6.9.0"
     mongoose: "npm:^8.7.2"
     prettier: "npm:^3.3.3"
     ts-node-dev: "npm:^2.0.0"
@@ -2452,7 +2453,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mongodb@npm:6.9.0":
+"mongodb@npm:6.9.0, mongodb@npm:^6.9.0":
   version: 6.9.0
   resolution: "mongodb@npm:6.9.0"
   dependencies:

@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import routes from "./routes";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ app.use(cors());
 app.use(helmet());
 app.use(express.json());
 app.use(routes);
+
+const MONGODB_URL = process.env.MONGODB_URL ?? "";
+mongoose.connect(MONGODB_URL);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
