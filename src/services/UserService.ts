@@ -9,3 +9,13 @@ export const createUser = async ({
   await user.save();
   return user;
 };
+
+export const findByEmail = async (
+  email: string,
+): Promise<IUserDocument | null> => {
+  const user = await User.findOne({ email });
+  if (user) {
+    return user;
+  }
+  return null;
+};
