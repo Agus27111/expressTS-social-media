@@ -3,12 +3,14 @@ import {
   TypedResponse,
   TypedNextFunction,
 } from "../utils/TypedController";
+import type { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import { IUser } from "../schemas/User";
 import { createUser, findByEmail } from "../services/UserService";
-import type { JwtPayload } from "../types/JwtPayload";
+import type { JwtPayload } from "../@types/JwtPayload";
 import jwt from "jsonwebtoken";
 import config from "../config/default";
+import redisClient from "../utils/connectRedis";
 
 const jwtSign = (payload: JwtPayload, expiresIn: string) => {
   const secret = config.jwtSecret;
@@ -92,11 +94,15 @@ export const login = async (
         error: "Invalid password",
       });
     }
-    const payload = {
+    const payload: JwtPayload = {
       id: user.id,
       username: user.username,
       email: user.email,
     };
+
+    redisClient.set(`${user.id}`, JSON.stringify(payload), {
+      EX: config.redisExpiresIn * 60, //1 minggu
+    });
 
     const accesToken = jwtSign(payload, `${config.accessTokenExpiresIn}m`);
 
@@ -133,6 +139,86 @@ export const login = async (
       message: "Error creating user",
       data: null,
       error: errorMessage,
+    });
+  }
+};
+
+export const refreshAccessToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({
+        message: "Could not refresh access token",
+        data: null,
+      });
+    }
+
+    const decoded = jwt.verify(refreshToken, config.jwtSecret) as JwtPayload;
+    if (!decoded) {
+      return res.status(401).json({
+        message: "your refresh token invalid",
+        data: null,
+      });
+    }
+
+    const session = await redisClient.get(decoded.id.toString());
+    if (!session) {
+      return res.status(401).json({
+        message: "session not found, please login again",
+        data: null,
+      });
+    }
+    const newAccessToken = jwt.sign(decoded, config.jwtSecret);
+
+    res.cookie("accessToken", newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      expires: new Date(Date.now() + 1000 * 60 * config.accessTokenExpiresIn),
+      sameSite: "strict",
+    });
+    res.status(200).json({
+      message: "Access token refreshed",
+      data: {
+        accessToken: newAccessToken,
+      },
+    });
+  } catch (error) {
+    next(error);
+    res.status(500).json({
+      message: "Error creating user",
+      data: null,
+      error: (error as Error).message || "Internal server error",
+    });
+  }
+};
+
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const user = req.user;
+    await redisClient.del(user?.id.toString() as string);
+
+    return res
+      .cookie("accessToken", "", { maxAge: -1 })
+      .cookie("refreshToken", "", { maxAge: -1 })
+      .status(200)
+      .json({
+        message: "User logged out",
+        data: null,
+      });
+  } catch (error) {
+    next(error);
+    res.status(500).json({
+      message: "Error logout user",
+      data: null,
+      error: (error as Error).message || "Internal server error",
     });
   }
 };

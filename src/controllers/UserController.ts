@@ -7,6 +7,8 @@ type User = {
 
 export const getUsers = (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log("siapa yang login saat ini?")
+    console.log(req.user)
     const users: Array<User> = [
       {
         name: "John Doe",
@@ -19,7 +21,7 @@ export const getUsers = (req: Request, res: Response, next: NextFunction) => {
     ];
     res.status(200).json({ message: "User found", data: users });
   } catch (error) {
-    next(error); // Panggil next jika terjadi kesalahan
+    next(error); 
   }
 }
 
