@@ -21,7 +21,7 @@ export const authGate = async (
 
   const session = await redisClient.get(decoded.id.toString());
   if (!session) {
-    return res.status(401).json({
+    return res.status(401).send({
       message: "session not found, please login again",
     });
   }
